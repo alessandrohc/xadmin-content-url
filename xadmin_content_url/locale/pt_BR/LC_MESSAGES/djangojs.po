@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-07-04 16:58-0300\n"
+"POT-Creation-Date: 2025-11-13 15:14-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -18,10 +18,10 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 
-#: static/xd_content_url/js/xd_sel_url.js:136
+#: static/xd_content_url/js/xd_sel_url.js:148
 msgid "Content URL"
 msgstr "URL de conteúdo"
 
-#: static/xd_content_url/js/xd_sel_url.js:141
+#: static/xd_content_url/js/xd_sel_url.js:153
 msgid "Insert selected"
 msgstr "Inserir selecionado"

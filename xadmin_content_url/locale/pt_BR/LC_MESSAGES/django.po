@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-08-02 17:07-0300\n"
+"POT-Creation-Date: 2025-11-13 15:14-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -18,7 +18,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 
-#: apps.py:9 models.py:73
+#: apps.py:9 models.py:82
 msgid "Content URL"
 msgstr "URL de conteúdo"
 
@@ -26,39 +26,43 @@ msgstr "URL de conteúdo"
 msgid "Content"
 msgstr "Conteúdo"
 
-#: models.py:10
+#: models.py:11
 msgid "Ref"
 msgstr "Ref"
 
-#: models.py:12
+#: models.py:13
 msgid "Name"
 msgstr "Nome"
 
-#: models.py:13
+#: models.py:14
 msgid "URL name"
 msgstr "URL de conteúdo"
 
-#: models.py:30
+#: models.py:32
 msgid "Site view"
 msgstr "Tela do site"
 
-#: models.py:31
+#: models.py:33
 msgid "Site views"
 msgstr "Telas do site"
 
-#: models.py:53 templates/xd_content_url/forms/model_form.html:23
+#: models.py:55 models.py:75 templates/xd_content_url/forms/model_form.html:23
 msgid "URL"
 msgstr "URL"
 
-#: models.py:60
+#: models.py:62
 msgid "created at"
 msgstr "criado em"
 
-#: models.py:61
+#: models.py:63
 msgid "updated at"
 msgstr "atualizado em"
 
-#: register.py:21
+#: models.py:70
+msgid "Field Name"
+msgstr "Nome do campo"
+
+#: register.py:20
 msgid "URL Content"
 msgstr "URL de conteúdo"
 
