@@ -1,27 +1,43 @@
-import sys
-
-from django.core.management import BaseCommand
-from xadmin_content_url import settings as xd_settings
+from django.core.management.base import BaseCommand
 from xadmin_content_url.models import XdContentUrl
 
 
 class Command(BaseCommand):
-	help = """Removes instances of content that is no longer registered."""
-	xd_content_url_model = XdContentUrl
+    help = """Removes URL links (XdContentUrl) that point to deleted objects."""
 
-	def handle(self, *args, **options):
-		url_for_models = [m.lower() for m in xd_settings.XD_CONTENT_URL_FOR_MODELS]
+    def handle(self, *args, **options):
+        self.stdout.write(self.style.NOTICE("Starting cleanup of orphaned URL links..."))
 
-		for instance in self.xd_content_url_model.objects.all():
-			try:
-				if model_class := instance.content_type.model_class():
-					label_lower = model_class._meta.label_lower
-				else:
-					label_lower = None
-			except Exception as exc:
-				print(f"ModelClass error: '{exc}'", file=sys.stderr)
-				label_lower = None
+        links_to_delete = []
 
-			if label_lower is None or label_lower not in url_for_models:
-				print(f"Remove [{label_lower}] {instance}", file=sys.stdout)
-				instance.delete()
+        # We use iterator() for memory efficiency on large tables
+        # and select_related() to avoid a query per loop to fetch the ContentType.
+        total_links = 0
+        for link in XdContentUrl.objects.select_related('content_type').iterator():
+            total_links += 1
+            # The 'content_object' property does the magic.
+            # It returns None if the related object no longer exists,
+            # either because the row was deleted or even the entire table is gone.
+            if link.content_object is None:
+                links_to_delete.append(link.pk)
+                self.stdout.write(
+                    self.style.WARNING(
+                        f"  -> Marked for deletion: Orphaned link ID {link.pk} "
+                        f"(pointed to '{link.content_type}' with object_id: {link.object_id})"
+                    )
+                )
+
+        if not links_to_delete:
+            self.stdout.write(self.style.SUCCESS(f"No orphaned links found out of {total_links} total links. The database is clean!"))
+            return
+
+        orphaned_count = len(links_to_delete)
+        self.stdout.write(self.style.NOTICE(f"\nFound {orphaned_count} orphaned links out of {total_links} total."))
+
+        # Delete all orphaned links at once for better performance.
+        # The delete() here will still trigger CASCADE to XdUrl, which is the
+        # correct behavior for a truly orphaned link.
+        queryset = XdContentUrl.objects.filter(pk__in=links_to_delete)
+        queryset.delete()
+
+        self.stdout.write(self.style.SUCCESS(f"Cleanup complete. {orphaned_count} orphaned links were removed."))
