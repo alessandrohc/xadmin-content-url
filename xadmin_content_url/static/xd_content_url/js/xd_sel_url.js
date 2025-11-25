@@ -1,177 +1,257 @@
-$(function () {
-    var ContentUrl = function ($el, options) {
-        this.$el = $el;
-        this.options = options;
-        this.icons = {
-            loading: "fa fa-spin fa-spinner mr-2",
-            error: "fa fa-exclamation-triangle mr-2",
+// Wraps the code in an IIFE to create a safe scope and avoid conflicts with the '$' alias.
+(function ($) {
+    'use strict';
+
+    // Use of ES6 classes for a clearer and more modern structure.
+    class ContentUrl {
+        constructor($el, options) {
+            this.$el = $el;
+            this.options = options;
+            this.modal = null;
+            this.$dt = null; // DataTable instance
+
+            this.icons = {
+                loading: "fa fa-spin fa-spinner mr-2",
+                error: "fa fa-exclamation-triangle mr-2",
+            };
+
+            // Use an arrow function to maintain the 'this' context without needing $.proxy.
+            this.$el.on('click', () => this.init());
         }
-        $el.click($.proxy(this.init, this));
-    }
-    ContentUrl.prototype.init = function () {
-        var self = this,
-            modal = this.get_modal();
-        this.get_btn_insert().prop("disabled", true);
-        modal.loading();
-        $.ajax({
-            url: this.$el.data('url')
-        }).done(function (html) {
-            self.reload(html);
-        }).fail(function () {
-            var for_name = self.$el.data("for_name"),
-                retry = modal.retry_action(for_name, $.proxy(self.init, self));
-            modal.fail(retry);
-        });
-        modal.show();
-    }
 
-    /* Initializes the modal and prepares for a new table load */
-    ContentUrl.prototype.reload = function (html) {
-        var $form, ajax_table,
-            modal = this.get_modal();
-        modal.set_content(html);
-        ajax_table = $.proxy(this.ajax_table, this);
-        $form = modal.$modal.find("form.xdm_ct_url_form");
-        $form.find("button.btn-content-select").click(ajax_table);
-        if (this.$dt) {
-            this.$dt.destroy();
-            this.$dt = null;
+        // 'init' method using .done() and .fail() instead of async/await.
+        init() {
+            const modal = this.getModal();
+            this.getBtnInsert().prop("disabled", true);
+            modal.loading();
+            modal.show();
+
+            $.ajax({ url: this.$el.data('url') })
+                .done(html => {
+                    // Request success
+                    this.reload(html);
+                })
+                .fail(error => {
+                    // Request failure
+                    console.error("Failed to load modal content:", error);
+                    const forName = this.$el.data("for_name");
+                    // Arrow function maintains 'this'
+                    const retryAction = () => this.init();
+                    modal.fail(modal.retry_action(forName, retryAction));
+                });
         }
-    }
 
-    ContentUrl.prototype.get_btn_insert = function () {
-        if (!this.$btnInsert) {
-            this.$btnInsert = this.modal.find("button.xd_ct_insert");
-            this.$btnInsert.attr("data-dismiss", function (_, value) {
-                return value !== undefined ? value : 'modal';
-            });
+        /* Initializes the modal and prepares for a new table load */
+        reload(html) {
+            const modal = this.getModal();
+            modal.set_content(html);
+
+            const $form = modal.$modal.find("form.xdm_ct_url_form");
+            $form.find("button.btn-content-select").on('click', () => this.ajaxTable());
+
+            if (this.$dt) {
+                this.$dt.destroy();
+                this.$dt = null;
+            }
         }
-        return this.$btnInsert
-    }
 
-    ContentUrl.prototype.get_modal_footer = function () {
-        if (!this.$modalFooter) {
-            this.$modalFooter = this.modal.find(".modal-footer");
+        // "Getter" methods for caching jQuery elements.
+        getBtnInsert() {
+            if (!this.$btnInsert) {
+                this.$btnInsert = this.getModal().find("button.xd_ct_insert");
+                this.$btnInsert.attr("data-dismiss", (_, value) => value !== undefined ? value : 'modal');
+            }
+            return this.$btnInsert;
         }
-        return this.$modalFooter
-    }
 
-    ContentUrl.prototype.get_selection = function () {
-        return this.modal.find("form.xdm_ct_url_form #id_xdm-content").val();
-    }
-
-    /* Mount the url to the initial form */
-    ContentUrl.prototype.get_rest_url = function (model_label) {
-        var url;
-        if (window.Urls) {
-            url = Urls["xadmin:" + model_label.replace(".", "_") + "_rest"]()
-        } else {
-            url = xadmin.path_prefix + model_label.replace(".", "/") + "/rest"
+        getModalFooter() {
+            if (!this.$modalFooter) {
+                this.$modalFooter = this.getModal().find(".modal-footer");
+            }
+            return this.$modalFooter;
         }
-        return url;
-    }
-    ContentUrl.prototype.ajax_table = function () {
-        var self = this,
-            $form = this.modal.find("form.xdm_ct_url_form"),
-            $icon = $form.find("button.btn-content-select").find('i'),
-            $sel = $form.find("#id_xdm-content"),
-            url = this.get_rest_url($sel.val()),
-            $table_wrapper = $form.find(".xdm_ct_url_table_wrapper").removeClass('d-none'),
-            $table = $form.find("table.xdm_ct_url_table").removeClass('d-none'),
-            params = {plugin: "xd_ct_url", 'format': 'datatables'};
 
+        getSelection() {
+            return this.getModal().find("form.xdm_ct_url_form #id_xdm-content").val();
+        }
 
-        if (!this.$dt) {
-            this.$dt = $table.DataTable({
-                	dom: "<'row align-items-center'<'col-sm-12 col-md-6 p-1'l><'col-sm-12 col-md-6 p-1'f>>"
-                        + "<'row'<'col-sm-12'tr>>"
-                        + "<'row mt-3'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>",
-                ajax: {
-                    url: url,
-                    data: params,
-                    error: function (jqXHR, textStatus, errorThrown) {
-                        var data = (jqXHR.responseJSON || {}).data,
-                            text = textStatus || '';
-                        $icon.removeClass(self.icons.loading);
-                        $icon.addClass(self.icons.error);
-                        $icon.attr("title", data ? data.detail || text: text);
+        /* Builds the URL for the initial form */
+        getRestUrl(modelLabel) {
+            if (window.Urls) {
+                const urlName = `xadmin:${modelLabel.replace(".", "_")}_rest`;
+                return Urls[urlName]();
+            }
+            return `${xadmin.path_prefix}${modelLabel.replace(".", "/")}/rest`;
+        }
+        
+        /**
+         * Returns the internal and display values associated with this instance.
+         * @returns {{internalValue: string, displayValue: string}|null}
+         */
+        getValue() {
+            const forName = this.$el.data('for_name');
+            if (!forName) {
+                console.error('ContentUrl: "data-for_name" attribute not found.');
+                return null;
+            }
+            const $input = $(`form input[name='${forName}']`);
+            const $selInput = $(`form input[name='sel_${forName}']`);
+
+            return {
+                internalValue: $input.val(),
+                displayValue: $selInput.val()
+            };
+        }
+
+        /**
+         * Sets the internal and display values.
+         * Triggers the 'change' event on the main input if the value is changed.
+         * @param {{internalValue: string, displayValue: string}} data - The object with the values to be set.
+         * @returns {boolean} - Returns true if the value was changed, false otherwise.
+         */
+        setValue(data) {
+            if (!data || typeof data.internalValue === 'undefined' || typeof data.displayValue === 'undefined') {
+                console.error('ContentUrl: setValue() requires an object with internalValue and displayValue properties.');
+                return false;
+            }
+
+            const forName = this.$el.data('for_name');
+            if (!forName) {
+                console.error('ContentUrl: "data-for_name" attribute not found.');
+                return false;
+            }
+            const $input = $(`form input[name='${forName}']`);
+            const $selInput = $(`form input[name='sel_${forName}']`);
+
+            const oldInternalValue = $input.val();
+            
+            // Compare the old value with the new one to detect the change.
+            if (oldInternalValue !== data.internalValue) {
+                $input.val(data.internalValue);
+                $selInput.val(data.displayValue);
+                
+                // Triggers the default jQuery 'change' event on the main input.
+                $input.trigger('change');
+                
+                return true; // Reports that the change occurred.
+            }
+
+            return false; // Reports that no change was necessary.
+        }
+
+        ajaxTable() {
+            const $form = this.getModal().find("form.xdm_ct_url_form");
+            const $icon = $form.find("button.btn-content-select i");
+            const $sel = $form.find("#id_xdm-content");
+            const url = this.getRestUrl($sel.val());
+            
+            $form.find(".xdm_ct_url_table_wrapper").removeClass('d-none');
+            const $table = $form.find("table.xdm_ct_url_table").removeClass('d-none');
+
+            const params = { plugin: "xd_ct_url", 'format': 'datatables' };
+
+            if (!this.$dt) {
+                this.$dt = $table.DataTable({
+                    dom: "<'row align-items-center'<'col-sm-12 col-md-6 p-1'l><'col-sm-12 col-md-6 p-1'f>>" +
+                         "<'row'<'col-sm-12'tr>>" +
+                         "<'row mt-3'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>",
+                    ajax: {
+                        url: url,
+                        data: params,
+                        error: (jqXHR, textStatus, errorThrown) => {
+                            const data = (jqXHR.responseJSON || {}).data;
+                            const text = textStatus || '';
+                            $icon.removeClass(this.icons.loading).addClass(this.icons.error);
+                            $icon.attr("title", data ? data.detail || text : text);
+                        },
                     },
-                },
-                select: {
-                    info: false,
-                    style: 'single'
-                },
-                processing: true,
-                language: {
-                    url: $table.data('language-url'),
-                },
-            });
-            this.$dt.on('preXhr', function () {
-                $icon.addClass(self.icons.loading).removeAttr("title");
-            });
-            this.$dt.on('draw', function () {
-                $icon.removeClass(self.icons.loading).removeClass(self.icons.error);
-            });
-            this.$dt.on('select', $.proxy(this.dt_row_selected, this));
-            this.$dt.on('deselect', $.proxy(this.dt_row_deselected, this));
-        } else {
-            this.$dt.ajax.url(url).load();
+                    select: {
+                        info: false,
+                        style: 'single'
+                    },
+                    processing: true,
+                    language: {
+                        url: $table.data('language-url'),
+                    },
+                });
+
+                this.$dt.on('preXhr', () => {
+                    $icon.addClass(this.icons.loading).removeAttr("title");
+                });
+                this.$dt.on('draw', () => {
+                    $icon.removeClass(this.icons.loading).removeClass(this.icons.error);
+                });
+                this.$dt.on('select', (e, dt, type) => this.dtRowSelected(e, dt, type));
+                this.$dt.on('deselect', (e, dt, type) => this.dtRowDeselected(e, dt, type));
+            } else {
+                this.$dt.ajax.url(url).load();
+            }
+        }
+
+        dtRowSelected(e, dt, type) {
+            if (type === 'row') {
+                this.getBtnInsert().prop("disabled", false);
+            }
+        }
+
+        dtRowDeselected(e, dt, type) {
+            if (type === 'row') {
+                this.getBtnInsert().prop("disabled", true);
+            }
+        }
+
+        /**
+         * Collects data from the selected DataTable row and uses the
+         * setValue method to populate the fields.
+         */
+        insert() {
+            const selectedData = this.$dt.rows({ selected: true }).data();
+            const modelLabel = this.getSelection();
+            
+            const dataToSet = {
+                internalValue: `${modelLabel.replace(".", ":")}:${selectedData.pluck('id')[0]}`,
+                displayValue: selectedData.pluck('url')[0]
+            };
+
+            this.setValue(dataToSet);
+        }
+
+        getModal() {
+            if (!this.modal) {
+                this.modal = xadmin.bs_modal({
+                    header: { tag: 'h5', title: gettext("Content URL") },
+                    modal: { size: 'modal-lg', id: "xd_content_url_modal" },
+                    cancel_button: { 'class': 'd-none' },
+                    confirm_button: {
+                        'class': 'sticky-bottom xd_ct_insert',
+                        'text': gettext("Insert selected")
+                    }
+                });
+
+                this.getModalFooter().addClass('sticky-bottom');
+                this.modal.appendTo('body');
+                
+                const $btn = this.getBtnInsert().prop("disabled", true);
+                $btn.on('click', () => this.insert());
+            }
+            return this.modal;
         }
     }
 
-    ContentUrl.prototype.dt_row_selected = function (e, dt, type, indexes) {
-        if (type === 'row') {
-            this.get_btn_insert().prop("disabled", false);
-        }
-    }
-    ContentUrl.prototype.dt_row_deselected = function (e, dt, type, indexes) {
-        if (type === 'row') {
-            this.get_btn_insert().prop("disabled", true);
-        }
-    }
-
-    ContentUrl.prototype.insert = function () {
-        var data = this.$dt.rows( { selected: true } ).data(),
-            data_id = data.pluck('id'),
-            data_url = data.pluck('url'),
-            model_label = this.get_selection(),
-            $input = $("form input[name='" + this.$el.data('for_name') +"']"),
-            $selInput = $("form input[name='sel_" + this.$el.data('for_name') +"']"),
-            ctype = model_label.replace(".", ":") + ":" + data_id[0];
-        $selInput.val(data_url[0])
-        $input.val(ctype);
-    }
-
-    ContentUrl.prototype.get_modal = function () {
-        if (!this.modal) {
-            this.modal = xadmin.bs_modal({
-                header: {tag: 'h5', title: gettext("Content URL")},
-                modal: {size: 'modal-lg', id: "xd_content_url_modal"},
-                cancel_button: {'class': 'd-none'},
-                confirm_button: {
-                    'class': 'sticky-bottom xd_ct_insert',
-                    'text': gettext("Insert selected")
-                }
-            });
-
-            this.get_modal_footer().addClass('sticky-bottom');
-
-            this.modal.appendTo('body');
-            var $btn = this.get_btn_insert().prop("disabled", true);
-            $btn.click($.proxy(this.insert, this));
-        }
-        return this.modal;
-    }
-
+    // jQuery plugin creation.
     $.fn.select_ct_url = function (options) {
         return this.each(function () {
-            var $el = $(this).add('xd_sel_url');
+            const $el = $(this);
+            $el.addClass('xd_sel_url_initialized'); 
             if (!$el.data('xd_content_url')) {
                 $el.data('xd_content_url', new ContentUrl($el, options));
             }
-            return $el.data('xd_content_url');
         });
-    }
+    };
 
-    $(".xd_content_url_sel_btn").select_ct_url();
-})
+    // Auto-initialization of the plugin on elements with the correct class when the DOM is ready.
+    $(function () {
+        $(".xd_content_url_sel_btn").select_ct_url();
+    });
+
+})(jQuery);
