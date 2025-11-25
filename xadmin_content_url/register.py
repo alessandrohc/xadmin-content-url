@@ -23,7 +23,7 @@ def _process_legacy_item(model_path):
 
 def _process_dict_item(item_dict):
     """Processes a new, dictionary-based registration."""
-    for model_path, field_names in item_dict.items():
+    for model_path, field_definitions in item_dict.items():
         try:
             app_label, model_name = model_path.split(".", 1)
             model = apps.get_model(app_label, model_name)
@@ -31,15 +31,27 @@ def _process_dict_item(item_dict):
             warnings.warn(f"Invalid model path '{model_path}' in dictionary. Error: {exc}", RuntimeWarning)
             continue  # Continue to the next item in the dict
 
-        if not isinstance(field_names, (list, tuple)):
-            warnings.warn(f"Value for '{model_path}' must be a list or tuple of field names.", RuntimeWarning)
-            field_names = [field_names]  # Be lenient
+        if not isinstance(field_definitions, (list, tuple)):
+            warnings.warn(f"Value for '{model_path}' must be a list or tuple.", RuntimeWarning)
+            field_definitions = [field_definitions]
 
-        for field_name in field_names:
-            # Use the field name to generate a user-friendly verbose_name
-            verbose_name = _(field_name.replace("_", " ").title())
-            field = XdContentUrlField(XdContentUrl, verbose_name=verbose_name)
+        for field_info in field_definitions:
+            if isinstance(field_info, str):
+                field_name = field_info
+                field_kwargs = {}
+            elif isinstance(field_info, (list, tuple)) and len(field_info) == 2:
+                field_name, field_kwargs = field_info
+            else:
+                warnings.warn(f"Invalid field definition in '{model_path}': {field_info}.", RuntimeWarning)
+                continue
+
+            # If verbose_name is not provided in kwargs, generate a default one.
+            if 'verbose_name' not in field_kwargs:
+                field_kwargs['verbose_name'] = _(field_name.replace("_", " ").title())
+
+            field = XdContentUrlField(XdContentUrl, **field_kwargs)
             field.contribute_to_class(model, field_name)
+
 
 
 def register_models(*items):
