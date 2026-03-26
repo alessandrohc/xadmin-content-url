@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
 	name='xadmin-content-url',
-	version='1.7.0',
+	version='1.9.0',
 	packages=[
 		'xadmin_content_url',
 		'xadmin_content_url.db',
