@@ -42,10 +42,9 @@ class XdUrl(models.Model):
         # noinspection PyBroadException
         try:
             obj = self.content_object
-        except Exception as exc:
-            url = None
-        else:
             url = obj and obj.get_absolute_url()
+        except Exception:
+            url = None
         return force_str(url or '')
 
     def __str__(self):
