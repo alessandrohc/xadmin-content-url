@@ -12,8 +12,13 @@ class XdContentUrlField(django_forms.Field):
 
 	def __init__(self, *args, empty_value=None, **kwargs):
 		super().__init__(*args, **kwargs)
-		if empty_value is None:
-			self.empty_value = []
+		# Assigned unconditionally. Until 1.10.0 the assignment sat inside
+		# `if empty_value is None`, so passing anything else dropped the argument --
+		# and because forms.Field defines no empty_value, to_python("") then raised
+		# AttributeError instead of returning it.
+		# The default stays [] rather than None so that clearing the widget clears
+		# the stored links: save_form_data treats None as "field not submitted".
+		self.empty_value = [] if empty_value is None else empty_value
 
 	def prepare_value(self, value):
 		if value in self.empty_values or isinstance(value, list):
