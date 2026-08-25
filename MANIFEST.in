@@ -4,3 +4,8 @@ include MANIFEST.in
 recursive-include xadmin_content_url/locale *
 recursive-include xadmin_content_url/static *
 recursive-include xadmin_content_url/templates *
+
+# The suite ships in the sdist so the distribution can be verified from source.
+# It is kept out of the wheel by [tool.setuptools.packages.find] in pyproject.toml.
+include runtests.py
+recursive-include test_content_url *.py

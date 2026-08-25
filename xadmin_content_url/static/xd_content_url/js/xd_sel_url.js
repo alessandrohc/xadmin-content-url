@@ -94,8 +94,8 @@
                 console.error('ContentUrl: "data-for_name" attribute not found.');
                 return null;
             }
-            const $input = $(`form input[name='${forName}']`);
-            const $selInput = $(`form input[name='sel_${forName}']`);
+            const $input = this.$el.closest('form').find(`input[name='${forName}']`);
+            const $selInput = this.$el.closest('form').find(`input[name='sel_${forName}']`);
 
             return {
                 internalValue: $input.val(),
@@ -120,8 +120,8 @@
                 console.error('ContentUrl: "data-for_name" attribute not found.');
                 return false;
             }
-            const $input = $(`form input[name='${forName}']`);
-            const $selInput = $(`form input[name='sel_${forName}']`);
+            const $input = this.$el.closest('form').find(`input[name='${forName}']`);
+            const $selInput = this.$el.closest('form').find(`input[name='sel_${forName}']`);
 
             const oldInternalValue = $input.val();
             
@@ -253,5 +253,14 @@
     $(function () {
         $(".xd_content_url_sel_btn").select_ct_url();
     });
+
+    // Suporte a inlines dinâmicos (ex: BannerInline em BannerGallery)
+    if ($.fn.exform) {
+        $.fn.exform.renders.push(function(form) {
+            form.on("formset:added", function(evt, form_row) {
+                $(form_row).find(".xd_content_url_sel_btn").select_ct_url();
+            });
+        });
+    }
 
 })(jQuery);
